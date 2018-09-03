@@ -13,7 +13,6 @@ from datetime import datetime
 #数据的预处理
 def parse(x):
     return datetime.strptime(x,'%Y %m %d %H')
-
 dataset=pd.read_csv("Beijing.csv",parse_dates=[['year','month','day','hour']],index_col=0,date_parser=parse)
 dataset.drop('No',axis=1,inplace=True)
 dataset.columns=['pollution','dew','temp','press','wnd_dir','wnd_spd','snow','rain']

@@ -36,6 +36,25 @@ def series_to_supervised(data,n_in=1,n_out=1,dropnan=True):
         agg.dropna(inplace=True)
     return agg
 
+
+
+
+def max_Min(dataset):
+    """
+    对数据进行归一化处理
+    :param dataset:
+    :return:
+    """
+    d1=dataset.shape[0]
+    d2=dataset.shape[1]
+    for i in range(d2):
+        Max=max(dataset[:,i])
+        Min=min(dataset[:,i])
+        for j in range(d1):
+            dataset[j,i]=(dataset[j,i]-Min)/(Max-Min)
+    print(dataset)
+    return dataset
+
 #load dataset
 def load_dataset(data):
     dataset = pd.read_csv(data, header=0, index_col=0)
@@ -45,15 +64,19 @@ def load_dataset(data):
     values[:,4] = encoder.fit_transform(values[:,4])
     # ensure all data is float
     values = values.astype('float32')
+    print("=======",values)
     # normalize features
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled = scaler.fit_transform(values)
+    # scaler = MinMaxScaler(feature_range=(0, 1))
+    scaled=max_Min(values)
+    # scaled = scaler.fit_transform(values)
     # frame as supervised learning
     reframed = series_to_supervised(scaled, 1, 1)
     # drop columns we don't want to predict
     reframed.drop(reframed.columns[[9,10,11,12,13,14,15]], axis=1, inplace=True)
     # print(reframed)
     return reframed
+
+
 
 #分割数据集
 def split_dataset(data):
@@ -82,7 +105,7 @@ class Config():
         self.batch_size=50
 
         self.learning_rate=0.0001
-        self.training_epoch=500
+        self.training_epoch=100
         self.keep_prob=0.9
         self.hidden_nums=9
         self.hidden_two=18
@@ -155,11 +178,14 @@ if __name__=='__main__':
             train_total_loss+=loss_train
         test_losses.append(test_total_loss)
         train_losses.append(train_total_loss)
-        np.savetxt('train_loss.txt',train_total_loss)
-        np.savetxt('test_loss.txt',test_total_loss)
+        # np.savetxt('train_loss.txt',train_total_loss)
+        # np.savetxt('test_loss.txt',test_total_loss)
         print("epoch:{}======loss_train:{}====loss_test:{}".format(str(i+1),train_total_loss,test_total_loss))
         np.savetxt('train_result.txt',train_result)
         np.savetxt('test_result.txt', test_result)
+
+    np.savetxt("train_loss.txt",train_losses)
+    np.savetxt("test_loss.txt",test_losses)
 
 
 
