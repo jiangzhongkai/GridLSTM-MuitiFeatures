@@ -1,6 +1,19 @@
 """
 利用谷歌深度学习框架Tensorflow和Stack LSTM进行多特征数据的预测
 """
+tensorflow 1.8.0
+python 3.5
+
+第三方库：
+numpy
+pandas
+matplotlib
+sklearn
+...
+
+
+
+
 step_1:做数据集的处理
 step_2:LSTM的建模：1.tf.nn.rnn_cell.BasicLSTMCell()
                   2.如果需要多个LSTM进行堆栈,则还需要tf.nn.rnn_cell.MultiRNNCell()
