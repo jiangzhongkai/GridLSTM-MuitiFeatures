@@ -12,6 +12,9 @@ from sklearn.preprocessing import LabelEncoder,MinMaxScaler
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 import math
+import os
+
+os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使用CPU来运行。
 
 
 #当步长为1的时候的情况:
@@ -145,9 +148,11 @@ def LSTM_Model(input_data,config):
     #lsem_cell
     lstm_cell1=tf.nn.rnn_cell.BasicLSTMCell(num_units=config.hidden_nums,forget_bias=1.0,state_is_tuple=True)
     lstm_cell1=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell1,output_keep_prob=config.keep_prob)
+    lstm_cell11=tf.nn.rnn_cell.BasicLSTMCell(num_units=config.hidden_two,forget_bias=1.0,state_is_tuple=True)
+    lstm_cell11=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell11,output_keep_prob=config.keep_prob)
     lstm_cell2=tf.nn.rnn_cell.BasicLSTMCell(num_units=config.hidden_two,forget_bias=1.0,state_is_tuple=True)
     lstm_cell2=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell2,output_keep_prob=config.keep_prob)
-    stack_lstm=tf.nn.rnn_cell.MultiRNNCell(cells=[lstm_cell1,lstm_cell2],state_is_tuple=True)
+    stack_lstm=tf.nn.rnn_cell.MultiRNNCell(cells=[lstm_cell1,lstm_cell11,lstm_cell2],state_is_tuple=True)
     init_state=stack_lstm.zero_state(batch_size=config.batch_size,dtype=tf.float32)
     # print(type(input_data))
     outputs,_=tf.nn.static_rnn(cell=stack_lstm,inputs=input_data,dtype=tf.float32)
@@ -174,14 +179,11 @@ def main():
     prediction_Y = LSTM_Model(X, config)
 
     #利用MSE来做度量标准
-    cost=tf.div(tf.reduce_sum(tf.square(tf.subtract(prediction_Y,Y))),config.batch_size)
+    cost=tf.sqrt(tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(prediction_Y,Y)))))
     #cost = tf.reduce_mean(tf.square(prediction_Y - Y))
     optimizer = tf.train.AdamOptimizer(learning_rate=lr).minimize(cost)
 
     # 生成saver
-    # saver=tf.train.Server()
-
-
     init = tf.global_variables_initializer()
     sess = tf.Session()
     sess.run(init)
