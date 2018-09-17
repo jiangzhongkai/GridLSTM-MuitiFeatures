@@ -21,13 +21,14 @@ def data_recovery(data,dataset1):
     result=np.loadtxt(dataset1)
     for i in range(len(result)):
         result[i]=result[i]*(Max-Min)+Min
-
-    np.savetxt("result.txt",result)
+    np.savetxt("result_1.txt",result)
     print(result)
     return result
 
-
 data_recovery("pollution.csv","train_result.txt")
+
+
+
 
 
 

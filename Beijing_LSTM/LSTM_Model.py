@@ -13,6 +13,7 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 import math
 import os
+from tensorflow.contrib import grid_rnn
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使用CPU来运行。
 
@@ -21,6 +22,7 @@ os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使
 #当步长为2的时候的情况：
 # .....
 #做数据集的分配，
+
 #step_1:对数据集进行预处理并将其转化为有监督学习，对数据进行归一化处理
 def series_to_supervised(data,n_in=1,n_out=1,dropnan=True):
     n_vars=1 if type(data) is list else data.shape[1]
@@ -75,14 +77,12 @@ def load_dataset(data):
     values[:,4] = encoder.fit_transform(values[:,4])
     # ensure all data is float
     values = values.astype('float32')
-    print("=======",values)
     # normalize features
     # scaler = MinMaxScaler(feature_range=(0, 1))
     scaled=max_Min(values)
     # scaled = scaler.fit_transform(values)
     # frame as supervised learning
     reframed = series_to_supervised(scaled, 1, 1)
-    print(reframed)
     # drop columns we don't want to predict
     reframed.drop(reframed.columns[[9,10,11,12,13,14,15]], axis=1, inplace=True)
     # print(reframed)
@@ -135,6 +135,7 @@ class Config():
             'output': tf.Variable(tf.random_normal([1]))
         }
 
+
 def LSTM_Model(input_data,config):
     """
     LSTM模型
@@ -147,18 +148,18 @@ def LSTM_Model(input_data,config):
     input_data=tf.nn.sigmoid(tf.matmul(input_data,config.W['hidden'])+config.biases['hidden'])
     input_data=tf.split(input_data,config.timesteps,0)
     #lsem_cell
-    lstm_cell1=tf.nn.rnn_cell.BasicLSTMCell(num_units=config.hidden_nums,forget_bias=1.0,state_is_tuple=True)
-    lstm_cell1=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell1,output_keep_prob=config.keep_prob)
-    lstm_cell11=tf.nn.rnn_cell.BasicLSTMCell(num_units=config.hidden_two,forget_bias=1.0,state_is_tuple=True)
-    lstm_cell11=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell11,output_keep_prob=config.keep_prob)
-    lstm_cell2=tf.nn.rnn_cell.BasicLSTMCell(num_units=config.hidden_two,forget_bias=1.0,state_is_tuple=True)
-    lstm_cell2=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell2,output_keep_prob=config.keep_prob)
-    stack_lstm=tf.nn.rnn_cell.MultiRNNCell(cells=[lstm_cell1,lstm_cell11,lstm_cell2],state_is_tuple=True)
-    init_state=stack_lstm.zero_state(batch_size=config.batch_size,dtype=tf.float32)
-    # print(type(input_data))
+    lstm_cell1=grid_rnn.Grid2LSTMCell(num_units=config.hidden_nums,forget_bias=1.0,state_is_tuple=True)
+    # lstm_cell1=grid_rnn.Grid2BasicLSTMCell(num_units=config.hidden_nums,forget_bias=1.0,state_is_tuple=True)
+    # lstm_cell1=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell1,output_keep_prob=config.keep_prob)
+    lstm_cell11=grid_rnn.Grid2LSTMCell(num_units=config.hidden_two,forget_bias=1.0,state_is_tuple=True)
+    # lstm_cell11=grid_rnn.Grid2BasicLSTMCell(num_units=config.hidden_two,forget_bias=1.0,state_is_tuple=True)
+    # # lstm_cell11=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell11,output_keep_prob=config.keep_prob)
+    lstm_cell2=grid_rnn.Grid2LSTMCell(num_units=config.hidden_two,forget_bias=1.0,state_is_tuple=True)
+    # # lstm_cell2=tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell2,output_keep_prob=config.keep_prob)
+    stack_lstm=tf.nn.rnn_cell.MultiRNNCell(cells=[lstm_cell1,lstm_cell11,lstm_cell2])
+    # init_state=stack_lstm.zero_state(batch_size=config.batch_size,dtype=tf.float32)
     outputs,_=tf.nn.static_rnn(cell=stack_lstm,inputs=input_data,dtype=tf.float32)
     output=tf.matmul(outputs[-1],config.W['output'])+config.biases['output']
-
     return output
 
 

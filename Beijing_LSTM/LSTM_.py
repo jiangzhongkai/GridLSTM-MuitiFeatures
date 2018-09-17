@@ -15,7 +15,7 @@ import math
 import os
 from tensorflow.contrib.rnn import BasicLSTMCell,LSTMCell,GridLSTMCell
 from tensorflow.contrib.grid_rnn import Grid2LSTMCell,Grid2BasicLSTMCell
-
+from time import time
 
 # os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使用CPU来运行。
 
@@ -204,7 +204,7 @@ def GridLSTM_Model(input_data,config):
 
 
 def main():
-    data_X,data_Y=create_dataset_single_feature("Beijing_LSTM/data_light.txt")
+    data_X,data_Y=create_dataset_single_feature("data_light_new.txt")
     train_x,train_y,test_x,test_y=split_train_test_dataset_single(data_X,data_Y)
     # train_x, train_y, test_x, test_y = split_dataset('Beijing_LSTM/pollution.csv')
     train_y = train_y.reshape([-1, 1])
@@ -235,7 +235,7 @@ def main():
     train_losses = []
     train_result_total=[]
 
-
+    start=time()
     for i in range(epoch):
         train_total_loss = 0.0
         test_total_loss = 0.0
@@ -248,14 +248,16 @@ def main():
             test_total_loss += loss_test
             train_total_loss += loss_train
             train_result_total.append(train_result)
-            np.savetxt('train_result.txt', train_result)
-            np.savetxt('test_result.txt', test_result)
+            np.savetxt('train_result_2.txt', train_result)
+            np.savetxt('test_result_2.txt', test_result)
         test_losses.append(test_total_loss)
         train_losses.append(train_total_loss)
         print("epoch:{}======loss_train:{}===============loss_test:{}".format(str(i + 1), train_total_loss,test_total_loss))
 
         # summary_str=sess.run(merge_summmary_op,feed_dict={X:train_x,Y:train_y})
         # summary_writer.add_summary(summary_str,epoch)
+    end=time()
+    print("traing has been finished,it cost {}",format(end-start))
 
 if __name__=='__main__':
     main()
