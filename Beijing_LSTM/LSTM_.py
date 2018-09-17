@@ -185,17 +185,6 @@ def GridLSTM_Model(input_data,config):
     # print(lstm_cell1.state_size[0])
     # print(lstm_cell1.output_size[0])
     stack_lstm=tf.nn.rnn_cell.MultiRNNCell(cells=[lstm_cell1],state_is_tuple=True)   #返回的是元组形式，用的是一层GridLSTMCell
-    # print(stack_lstm.output_size)
-    # print(stack_lstm.state_size)
-
-    # lstm_cell11=BasicLSTMCell(num_units=config.hidden_two)
-    # lstm_cell22=BasicLSTMCell(num_units=config.hidden_two)
-    # print(lstm_cell11.state_size)
-    # print(lstm_cell11.output_size)
-    # stack_lstm=tf.nn.rnn_cell.MultiRNNCell(cells=[lstm_cell11,lstm_cell22],state_is_tuple=True)
-
-    # print(stack_lstm.state_size)
-    # print(stack_lstm.output_size)
     outputs,_=tf.nn.static_rnn(cell=stack_lstm,inputs=input_data,dtype=tf.float32)
     outputs=tf.squeeze(outputs,0)  #进行压缩
     output=tf.nn.xw_plus_b(outputs[-1],config.W['output'],config.biases['output'])

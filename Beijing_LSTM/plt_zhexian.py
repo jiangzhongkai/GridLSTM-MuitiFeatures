@@ -23,9 +23,7 @@ for  i in range(len(predict_dataset)):
 for i in range(len(predict_dataset_test)):
     error_dataset_test.append(math.fabs(predict_dataset_test[i]-true_dataset_test[i]))
 
-
-plt.figure(figsize=(10,10))
-
+plt.figure(figsize=(12,10))
 plt.subplot(221)
 plt.title("train_true")
 plt.plot(true_dataset,'r-',lw=2,label='true_value')
@@ -34,14 +32,7 @@ plt.xlabel("Epochs")
 plt.ylabel("Value")
 plt.legend(loc="best")
 
-
 plt.subplot(222)
-plt.title("train_error")
-plt.xlabel("Epochs")
-plt.plot(error_dataset,'b--',lw=2,label='test_error')
-
-
-plt.subplot(223)
 plt.title("test_true")
 plt.plot(true_dataset_test,'r-',lw=2,label='true_value')
 plt.plot(predict_dataset_test,'g--',lw=2,label='predict_value')
@@ -49,10 +40,17 @@ plt.xlabel("Epochs")
 plt.ylabel("Value")
 plt.legend(loc="best")
 
+plt.subplot(223)
+plt.title("train_error")
+plt.xlabel("Epochs")
+plt.plot(error_dataset,'b--',lw=2,label='test_error')
+plt.legend(loc="best")
+
 plt.subplot(224)
 plt.title("test_error")
 plt.xlabel("Epochs")
 plt.plot(error_dataset_test,'b--',lw=2,label="test_error")
+plt.legend(loc="best")
 
 plt.savefig("true_predict_value.jpg")
 plt.show()
