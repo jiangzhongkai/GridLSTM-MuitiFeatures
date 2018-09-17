@@ -34,6 +34,7 @@ def create_error_dataset(true_dataset,predict_dataset,Is=True):
 #这个仅针对测试训练集的，我们仅仅需要将测试集上
 #对于数据集上的不同
 #0,1,2,3
+#现在做的都是时间步长为1的实验
 
 """
 1.误差数据集主要的构建方法以及如何使用SVM模型怎么运用训练集进行评估
@@ -49,6 +50,8 @@ def add_label(error_test_dataset):
     print(error_dataset)
 
     for  i in range(len(error_dataset)):
+        for i in range(len())
+
 
 
 
