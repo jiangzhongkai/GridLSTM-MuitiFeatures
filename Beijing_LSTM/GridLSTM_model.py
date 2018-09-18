@@ -183,7 +183,9 @@ def add_label_to_CSV(test_dataset,ratio=0.05):
     print("网络丢包异常:",len(rand_index))
 
     # #网络攻击异常点的分配
-    # for i,index in zip(range(round(size/3)),rand_index):
+    for i,index in zip(range(round(size/3)),rand_index):
+        np.c_["value"]=
+
     # #硬件异常点的分配
     # for i,index in zip(range(round(size/3)),rand_index):
     data.to_csv("test_dataset.csv",sep=" ",index=None)   #将数据保存为csv格式的文件
@@ -238,7 +240,6 @@ class Config():
             'output': tf.Variable(tf.random_normal([1]))
         }
 
-
 def GridLSTM_Model(input_data,config):
     """
     LSTM模型
@@ -260,7 +261,6 @@ def GridLSTM_Model(input_data,config):
     output=tf.nn.xw_plus_b(outputs[-1],config.W['output'],config.biases['output'])
     output=tf.matmul(outputs[-1],config.W['output'])+config.biases['output']
     return output,_
-
 
 def main():
     add_label_to_CSV("test_dataset_X.txt")
