@@ -17,7 +17,7 @@ from tensorflow.contrib.rnn import BasicLSTMCell,LSTMCell,GridLSTMCell
 from tensorflow.contrib.grid_rnn import Grid2LSTMCell,Grid2BasicLSTMCell
 from time import time
 
-# os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使用CPU来运行。
+os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使用CPU来运行。
 
 
 #当步长为1的时候的情况:
@@ -159,7 +159,7 @@ def split_train_test_dataset_single(dataset_X,dataset_Y,ratio=0.7,Is=True):
 
     return train_X,train_Y,test_X,test_Y
 
-def add_label_to_CSV(test_dataset,ratio=0.05):
+def add_label_to_CSV(test_dataset,ratio=0.05,IS=True):
     """
     给测试集添加标签，对于不同的异常值情况进行分类,0-网络丢包异常，1-硬件异常，2-攻击异常，3-表示正常的值
     ,最后将其保存为csv文件格式的文件,这个数据集作为SVM模型的数据集，以及用来测试GridLSTM模型的
@@ -170,11 +170,15 @@ def add_label_to_CSV(test_dataset,ratio=0.05):
     test_dataset=np.loadtxt(test_dataset)
     size=int(len(test_dataset)*ratio)
     np.random.seed(0)   #设置随机种子，复现结果
+    # print(test_dataset)
     rand_index=list(np.random.choice(a=len(test_dataset),size=size,replace=False))
+    print(rand_index)
     columns=["value"]
     #添加一列，作为对应的类别
     data=pd.DataFrame(data=test_dataset,columns=columns)
-    data["class"]=3   #表示正常的值
+    data.insert(1,'class',value=3,allow_duplicates=True)  #添加一列作为类别判断
+    # print(data)
+    # data["class"]=3   #表示正常的值
     print("未分配前所有的异常索引个数:",len(rand_index))
     #网络丢包异常点的分配
     for i,index in zip(range(round(size/3)),rand_index):
@@ -191,24 +195,25 @@ def add_label_to_CSV(test_dataset,ratio=0.05):
     del rand_index
     #硬件异常点的分配
     # 数据在某段时间一直趋于某一个值，突然又趋于另外一个值，此时出现了硬件异常，硬件异常最不好识别，容易把正常的值识别为异常值
-    ran_index=np.arange(432,450,1)
-    for index in ran_index:
-        data.iloc[index,0]=np.random.uniform(37,38,1)
-        data.iloc[index,1]=2
-        # rand_index.remove(index)
-    del ran_index
-    ran_index=np.arange(720,740,1)
-    for index in ran_index:
-        data.iloc[index,0]=np.random.uniform(37,38,1)
-        data.iloc[index,1]=2
-    del ran_index
-    ran_index=np.arange(3200,3220,1)
-    for index in ran_index:
-        data.iloc[index,0]=np.random.uniform(37,38,1)
-        data.iloc[index,1]=2
+    for i in range(3):
+        if i==0:
+            ran_index = np.arange(432, 450, 1)
+        elif i==1:
+            ran_index = np.arange(720, 740, 1)
+        else:
+            ran_index = np.arange(3200, 3220, 1)
+        for index in ran_index:
+            data.iloc[index,0]=np.random.uniform(37,38,1)
+            data.iloc[index,1]=2
     del ran_index
     print("硬件异常点:",58)
+    print(data.info())
+    print(data['value'])
+    if IS==True:
+        data['value'].to_csv("test_value.csv",index=None)  #分别存储，方便
+        data["class"].to_csv("test_label.csv",index=None)
     data.to_csv("test_dataset.csv",sep=" ",index=None)   #将数据保存为csv格式的文件
+
 
 def test_annoly_dataset(test_dataset,ratio=0.05):
     """
@@ -259,6 +264,10 @@ class Config():
             'output': tf.Variable(tf.random_normal([1]))
         }
 
+
+#1.现在将思路整理一下：
+#2.利用测试集来验证模型的好坏，然后对产生的结果与真实值进行计算得到误差，然后利用误差集在SVM模型上进行异常值分类的工作
+
 def GridLSTM_Model(input_data,config):
     """
     LSTM模型
@@ -279,8 +288,9 @@ def GridLSTM_Model(input_data,config):
     return output,_
 
 def main():
-    # add_label_to_CSV("test_dataset_X.txt")
+    # add_label_to_CSV("test_dataset_X.txt",ratio=0.05,IS=True)
     # test_annoly_dataset("test_dataset.csv")
+
     data_X,data_Y=create_dataset_single_feature("data_light_new.txt")
     train_x,train_y,test_x,test_y=split_train_test_dataset_single(data_X,data_Y,Is=False)
 
@@ -288,7 +298,7 @@ def main():
     train_y = train_y.reshape([-1, 1])
     test_y = test_y.reshape([-1, 1])
     # print(train_y.shape)
-    #
+
     # # 定义一些占位符与变量
     config = Config(train_x, train_y)
     X = tf.placeholder(dtype=tf.float32, shape=[None, config.timesteps, config.features])
@@ -296,23 +306,23 @@ def main():
     epoch = config.training_epoch
     lr = config.learning_rate
     batch_size = config.batch_size
-
     prediction_Y,_=GridLSTM_Model(X, config)
-    tf.summary.histogram('predicton',prediction_Y)   #创建直方图的日志
+
+    # tf.summary.histogram('predicton',prediction_Y)   #创建直方图的日志
     #利用MSE来做度量标准
     cost=tf.reduce_mean(tf.square(tf.subtract(prediction_Y,Y)))
-    tf.summary.scalar('cost',tensor=cost)
+    # tf.summary.scalar('cost',tensor=cost)
     optimizer = tf.train.AdamOptimizer(learning_rate=lr).minimize(cost)
     # 生成saver
     saver=tf.train.Saver()
     init = tf.global_variables_initializer()
     sess = tf.Session()
-    summary_writer = tf.summary.FileWriter("/log", sess.graph)
+    # summary_writer = tf.summary.FileWriter("/log", sess.graph)
     sess.run(init)
+    saver.save(sess,"GridLSTM_Model")
     test_losses = []
     train_losses = []
     train_result_total=[]
-
     start=time()
     for i in range(epoch):
         train_total_loss = 0.0
@@ -336,8 +346,7 @@ def main():
     np.savetxt("train_loss.txt",train_losses)
     np.savetxt("test_loss.txt",test_losses)
     end=time()
-
-    print("traing has been finished,it cost {}".format(end-start))
+    print("Training has been finished,it cost {}".format(end-start))
 
 if __name__=='__main__':
     main()

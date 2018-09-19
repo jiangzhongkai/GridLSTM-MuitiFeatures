@@ -6,12 +6,20 @@
 """
 import  numpy as np
 import pandas as pd
-from sklearn.metrics.scorer import f1_score,recall_score,precision_score,accuracy_score
 from sklearn.svm import libsvm
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_digits
 from math import fabs
+from sklearn.metrics import accuracy_score,auc,recall_score,f1_score,precision_score,roc_curve,roc_auc_score
+from sklearn import  metrics
+import tensorflow as tf
+import  matplotlib.pyplot as plt
+
+"""
+主要是使用的SVM实现多分类，主要有两种方法：1.一对一方法,当K类时，需要创建k(k-1)/2个分类器 
+                                    2.还有一种一对多方法，为每个类别创建一个高斯核函数分类器，最后的预测类别是具有最大SVM间隔的类别
+"""
 
 #对数据集进行打标签
 def create_error_dataset(true_dataset,predict_dataset,Is=True):
@@ -40,39 +48,49 @@ def create_error_dataset(true_dataset,predict_dataset,Is=True):
 1.误差数据集主要的构建方法以及如何使用SVM模型怎么运用训练集进行评估
 2.先是对原始测试数据集进行标注，哪些是异常值，哪些是正常值。
 """
-def add_label(error_test_dataset):
+#运用SVM模型来做4分类的预测
+def SVM_Model(dataset_X,dataset_Y):
     """
-    添加一列作为标签
-    :param dataset:
+    返回预测的效果
+    :param dataset_X:
+    :param dataset_Y:
     :return:
     """
-    error_dataset=np.loadtxt(error_test_dataset).astype(np.float32)
-    print(error_dataset)
-
-    for  i in range(len(error_dataset)):
-        for i in range(len())
-
-
-
-
-
-def Min_Max_Scaler():
+    # train_X,train_Y,test_X,test_Y=split_train_test_dataset(dataset_X=dataset_X,dataset_Y=dataset_Y)
+def crate_data_to_target(train_X,train_Y,test_X,test_Y):
     """
-    进行数据归一化
+    主要是计算各个类别的情况，创造相应的数据集
+    :param train_X:
+    :param train_Y:
+    :param test_X:
+    :param test_Y:
     :return:
     """
-    pass
+    #训练集
+    train_data_X=np.array([x for x in train_X])
+    train_data_Y1=np.array([1 if y==0 else -1 for y in train_Y])
+    train_data_Y2=np.array([1 if y==1 else -1 for y in train_Y])
+    train_data_Y3=np.array([1 if y==2 else -1 for y in train_Y])
+    train_data_Y4=np.array([1 if y==3 else -1 for y in train_Y])
+    train_data_Y=np.array([train_data_Y1,train_data_Y2,train_data_Y3,train_data_Y4])
 
+    #测试集
+    test_data_X=np.array([x for x in test_X])
+    test_data_Y1=np.array([1 if y==0 else -1 for y in test_Y])
+    test_data_Y2=np.array([1 if y==1 else -1 for y in test_Y])
+    test_data_Y3=np.array([1 if y==2 else -1 for y in test_Y])
+    test_data_Y4=np.array([1 if y==3 else -1 for y in test_Y])
+    test_data_Y=np.array([test_data_Y1,test_data_Y2,test_data_Y3,test_data_Y4])
 
-def SVM_Model():
-    """
-    SVM模型
-    :return:
-    """
+    print(train_data_Y)
 
 if __name__=="__main__":
-    # error_dataset=create_error_dataset("data_light.txt","train_result.txt",Is=False)
-    add_label("error_dataset.txt")
+    data_X=pd.read_csv("test_value.csv")
+    data_Y=pd.read_csv("test_label.csv")
+    train_X,test_X,train_Y,test_Y=train_test_split(data_X,data_Y,test_size=0.7,random_state=20)
+    crate_data_to_target(train_X,train_Y,test_X,test_Y)
+
+    # add_label("error_dataset.txt")
 
 
 
