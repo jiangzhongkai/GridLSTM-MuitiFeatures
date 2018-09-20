@@ -172,19 +172,34 @@ if __name__=="__main__":
 
     #metrics
     test_data_X=np.reshape(test_data_X,[-1,1])
-    print(test_data_X.shape)
-    print(test_data_Y.shape)  #这里报错的原因是形状不匹配，所以我需要重新定义形状
+    # print(test_data_X.shape)
+    # print(test_data_Y.shape)  #这里报错的原因是形状不匹配，所以我需要重新定义形状
 
-    #主要是利用测试集来评估模型分类的好坏
-    val_accuracy,y_pred=sess.run([accuracy,prediction],feed_dict={X_data:test_data_X,Y_target:test_data_Y,prediction_grid:test_data_X})
-    print("validation accuracy:",val_accuracy)
-    y_true=np.arg_max(test_Y,1)
-    print("precision:",precision_score(y_true,y_pred))
-    print("Recall:",recall_score(y_true,y_pred))
-    print("f1_score:",f1_score(y_true,y_pred))
-    print("confusion matrix:",confusion_matrix(y_true,y_pred))
-    fpr,tpr,thresholds=roc_curve(y_true,y_pred)
-    print("tpr:{},fpr:{},thresholds:{}".format(fpr,tpr,thresholds))
+    #利用测试集数据来评估模型分类的好坏
+    for i in  range(30):
+        print("================epoch:{}==========================".format(str(i+1)))
+        rand_test_index=np.random.choice(len(test_data_X),size=batch_size,replace=False)
+        rand_test_x=test_data_X[rand_test_index]
+        rand_test_y=test_data_Y[:,rand_test_index]
+        val_accuracy,y_pred=sess.run([accuracy,prediction],feed_dict={X_data:rand_test_x,Y_target:rand_test_y,prediction_grid:rand_test_x})
+        print("validation accuracy:",val_accuracy)
+        y_true=[]
+        for p in range(rand_y.shape[1]):
+            for j in range(rand_y.shape[0]):
+                if rand_y[j][p] == 1:
+                    y_true.append(j)
+                    continue
+        y_true=np.array(list(y_true))
+        y_pred=np.array(list(y_pred))
+        # y_true=np.argmax(y_true,1)
+        print("accuracy:",accuracy_score(y_true,y_pred))
+        print("precision:",precision_score(y_true,y_pred,average='macro'))
+        print("Recall:",recall_score(y_true,y_pred,average='macro'))
+        print("f1_score:",f1_score(y_true,y_pred,average='macro'))
+
+        # print("confusion matrix:",confusion_matrix(y_true,y_pred))
+        # fpr,tpr,thresholds=roc_curve(y_true,y_pred)
+        # print("tpr:{},fpr:{},thresholds:{}".format(fpr,tpr,thresholds))
 
     plt.figure()
     plt.plot(batch_accuracy, 'r--', label='Accuracy',lw=3)
