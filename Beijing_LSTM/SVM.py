@@ -11,7 +11,7 @@ from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_digits
 from math import fabs
-from sklearn.metrics import accuracy_score,auc,recall_score,f1_score,precision_score,roc_curve,roc_auc_score
+from sklearn.metrics import accuracy_score,auc,recall_score,f1_score,precision_score,roc_curve,roc_auc_score,confusion_matrix
 from sklearn import  metrics
 import tensorflow as tf
 import  matplotlib.pyplot as plt
@@ -174,10 +174,17 @@ if __name__=="__main__":
     test_data_X=np.reshape(test_data_X,[-1,1])
     print(test_data_X.shape)
     print(test_data_Y.shape)  #这里报错的原因是形状不匹配，所以我需要重新定义形状
+
+    #主要是利用测试集来评估模型分类的好坏
     val_accuracy,y_pred=sess.run([accuracy,prediction],feed_dict={X_data:test_data_X,Y_target:test_data_Y,prediction_grid:test_data_X})
     print("validation accuracy:",val_accuracy)
-    y_true=np.argmax(test_Y,1)
+    y_true=np.arg_max(test_Y,1)
     print("precision:",precision_score(y_true,y_pred))
+    print("Recall:",recall_score(y_true,y_pred))
+    print("f1_score:",f1_score(y_true,y_pred))
+    print("confusion matrix:",confusion_matrix(y_true,y_pred))
+    fpr,tpr,thresholds=roc_curve(y_true,y_pred)
+    print("tpr:{},fpr:{},thresholds:{}".format(fpr,tpr,thresholds))
 
     plt.figure()
     plt.plot(batch_accuracy, 'r--', label='Accuracy',lw=3)
