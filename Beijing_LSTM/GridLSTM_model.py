@@ -15,7 +15,8 @@ import math
 import os
 from tensorflow.contrib.rnn import BasicLSTMCell,LSTMCell,GridLSTMCell
 from tensorflow.contrib.grid_rnn import Grid2LSTMCell,Grid2BasicLSTMCell
-from time import time
+import time
+
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使用CPU来运行。
 
@@ -23,7 +24,7 @@ os.environ['CUDA_VISIBLE_DEVICES']='0'  #当没有相应的GPU设备时，会使
 #当步长为1的时候的情况:
 #当步长为2的时候的情况：
 # .....
-#做数据集的分配，
+#做数据集的分配
 
 #step_1:对数据集进行预处理并将其转化为有监督学习，对数据进行归一化处理
 def series_to_supervised(data,n_in=1,n_out=1,dropnan=True):
@@ -34,15 +35,12 @@ def series_to_supervised(data,n_in=1,n_out=1,dropnan=True):
     for i in range(n_in,0,-1):
         cols.append(df.shift(i))
         names+=[('var%d(t-%d)' %(j+1,i)) for j in range(n_vars)]
-
     for i in range(0,n_out):
         cols.append(df.shift(-i))
-
         if i==0:
             names+=[('var%d(t)'%(j+1)) for j in range(n_vars)]
         else:
             names+=[('var%d(t+%d)'%(j+1,i)) for j in range(n_vars)]
-
     agg=pd.concat(cols,axis=1)
     agg.columns=names
     if dropnan:
@@ -89,8 +87,6 @@ def load_dataset(data):
     reframed.drop(reframed.columns[[9,10,11,12,13,14,15]], axis=1, inplace=True)
     # print(reframed)
     return reframed
-####
-
 
 def split_dataset_multiFeature(data):
     """
@@ -159,6 +155,38 @@ def split_train_test_dataset_single(dataset_X,dataset_Y,ratio=0.7,Is=True):
 
     return train_X,train_Y,test_X,test_Y
 
+def split_dataset_train_valid(dataset,ratio=0.8,timestep=1):
+    """
+    主要是将数据集分割为训练集和验证集
+    :param dataset:
+    :param ratio:
+    :return:
+    """
+    dataset=np.loadtxt(dataset,dtype=np.float64)
+    train_size=int(len(dataset)*ratio) # 训练集的大小
+    train_dataset=dataset[:train_size]
+    valid_dataset=dataset[train_size:]
+
+    train_dataset_X,train_dataset_Y,valid_dataset_X,valid_dataset_Y=[],[],[],[]
+    for i in range(len(train_dataset)-timestep):
+        x=train_dataset[i:i+timestep]
+        train_dataset_X.append(x)
+        train_dataset_Y.append(train_dataset[i+timestep])
+    for j in range(len(valid_dataset)-timestep):
+        x=valid_dataset[j:j+timestep]
+        valid_dataset_X.append(x)
+        valid_dataset_Y.append(valid_dataset[j+timestep])
+
+    train_dataset_X=np.array(train_dataset_X)
+    train_dataset_Y=np.array(train_dataset_Y)
+    valid_dataset_X=np.array(valid_dataset_X)
+    valid_dataset_Y=np.array(valid_dataset_Y)
+
+    train_dataset_X=np.reshape(train_dataset_X,newshape=[-1,timestep,train_dataset_X.shape[1]])
+    valid_dataset_X=np.reshape(valid_dataset_X,newshape=[-1,timestep,valid_dataset_X.shape[1]])
+
+    return train_dataset_X,train_dataset_Y,valid_dataset_X,valid_dataset_Y
+
 def add_label_to_CSV(test_dataset,ratio=0.2,IS=True):
     """
     给测试集添加标签，对于不同的异常值情况进行分类,0-网络丢包异常，1-硬件异常，2-攻击异常，3-表示正常的值
@@ -214,7 +242,7 @@ def add_label_to_CSV(test_dataset,ratio=0.2,IS=True):
     if IS==True:
         data['value'].to_csv("test_value.csv",index=None)  #分别存储，方便
         data["class"].to_csv("test_label.csv",index=None)
-    data.to_csv("test_dataset.csv",sep=" ",index=None)   #将数据保存为csv格式的文件
+    data.to_csv("test_dataset.csv",index=False)   #将数据保存为csv格式的文件
 
 
 def test_annoly_dataset(test_dataset,ratio=0.05):
@@ -240,6 +268,8 @@ def test_annoly_dataset(test_dataset,ratio=0.05):
         #产生攻击异常
     print(test_dataset)
 
+
+
 class Config():
     """
     配置类
@@ -250,7 +280,7 @@ class Config():
         self.outputdims=1
         self.batch_size=50
         self.learning_rate=0.0001
-        self.training_epoch=10
+        self.training_epoch=2
         self.keep_prob=0.9
         self.hidden_nums=9
         self.hidden_two=54
@@ -265,7 +295,6 @@ class Config():
             'hidden': tf.Variable(tf.random_normal([self.hidden_nums])),
             'output': tf.Variable(tf.random_normal([1]))
         }
-
 
 #1.现在将思路整理一下：
 #2.利用测试集来验证模型的好坏，然后对产生的结果与真实值进行计算得到误差，然后利用误差集在SVM模型上进行异常值分类的工作
@@ -290,65 +319,100 @@ def GridLSTM_Model(input_data,config):
     return output,_
 
 def main():
-    add_label_to_CSV("test_dataset_X.txt",ratio=0.2,IS=True)
+    train_x,train_y,valid_x,valid_y=split_dataset_train_valid("data_light_new.txt")
+    # add_label_to_CSV("test_dataset_X.txt",ratio=0.2,IS=True)
     # test_annoly_dataset("test_dataset.csv")
-
+    # 需要保存模型
     # data_X,data_Y=create_dataset_single_feature("data_light_new.txt")
-    # train_x,train_y,test_x,test_y=split_train_test_dataset_single(data_X,data_Y,Is=False)
+    # train_x,train_y,valid_x,valid_y=split_train_test_dataset_single(data_X,data_Y,Is=False)
     #
     # # train_x, train_y, test_x, test_y = split_dataset('Beijing_LSTM/pollution.csv')
-    # train_y = train_y.reshape([-1, 1])
-    # test_y = test_y.reshape([-1, 1])
-    # # print(train_y.shape)
-    #
-    # # # 定义一些占位符与变量
-    # config = Config(train_x, train_y)
-    # X = tf.placeholder(dtype=tf.float32, shape=[None, config.timesteps, config.features])
-    # Y = tf.placeholder(dtype=tf.float32, shape=[None, config.outputdims])
-    # epoch = config.training_epoch
-    # lr = config.learning_rate
-    # batch_size = config.batch_size
-    # prediction_Y,_=GridLSTM_Model(X, config)
-    #
-    # # tf.summary.histogram('predicton',prediction_Y)   #创建直方图的日志
-    # #利用MSE来做度量标准
-    # cost=tf.reduce_mean(tf.square(tf.subtract(prediction_Y,Y)))
-    # # tf.summary.scalar('cost',tensor=cost)
-    # optimizer = tf.train.AdamOptimizer(learning_rate=lr).minimize(cost)
-    # # 生成saver
-    # saver=tf.train.Saver()
-    # init = tf.global_variables_initializer()
-    # sess = tf.Session()
-    # # summary_writer = tf.summary.FileWriter("/log", sess.graph)
-    # sess.run(init)
-    # saver.save(sess,"GridLSTM_Model")
-    # test_losses = []
-    # train_losses = []
-    # train_result_total=[]
-    # start=time()
-    # for i in range(epoch):
-    #     train_total_loss = 0.0
-    #     test_total_loss = 0.0
-    #     # print("============epoch:",str(i+1),"======================")
-    #     for start, end in zip(range(0, len(train_x), batch_size), range(batch_size, len(train_x) + 1, batch_size)):
-    #         sess.run(optimizer, feed_dict={X: train_x[start:end], Y: train_y[start:end]})
-    #         # saver.save(sess,save_path=saver_dir+"lstm_model.cpkt")
-    #         loss_train, train_result = sess.run([cost, prediction_Y], feed_dict={X: train_x, Y: train_y})
-    #         loss_test, test_result = sess.run([cost, prediction_Y], feed_dict={X: test_x, Y: test_y})
-    #         test_total_loss += loss_test
-    #         train_total_loss += loss_train
-    #         train_result_total.append(train_result)
-    #         np.savetxt('train_result_5.txt', train_result)
-    #         np.savetxt('test_result_5.txt', test_result)
-    #     test_losses.append(test_total_loss)
-    #     train_losses.append(train_total_loss)
-    #     print("epoch:{}======loss_train:{}===============loss_test:{}".format(str(i + 1), train_total_loss,test_total_loss))
-    #     # summary_str=sess.run(merge_summmary_op,feed_dict={X:train_x,Y:train_y})
-    #     # summary_writer.add_summary(summary_str,epoch)
-    # np.savetxt("train_loss.txt",train_losses)
-    # np.savetxt("test_loss.txt",test_losses)
-    # end=time()
-    # print("Training has been finished,it cost {}".format(end-start))
+    # 测试集的加载
+    test_dataset = pd.read_csv("test_dataset.csv", low_memory=False)
+    test_dataset_values = test_dataset['value'].values
+    # print(test_dataset[test_dataset['value'].values==0].count())
+    # print(test_dataset_values)
+    timestep = 1
+    test_dataset_X = []
+    test_dataset_Y = []
+    for i in range(len(test_dataset_values) - timestep):
+        x = test_dataset_values[i:i + timestep]
+        test_dataset_X.append(x)
+        test_dataset_Y.append(test_dataset_values[i + timestep])
+
+    test_dataset_X = np.array(test_dataset_X)
+    test_dataset_Y = np.array(test_dataset_Y)
+    test_dataset_X = np.reshape(test_dataset_X, newshape=[-1, timestep, test_dataset_X.shape[1]])
+    test_dataset_Y=test_dataset_Y.reshape([-1,1])
+
+    train_y = train_y.reshape([-1, 1])
+    valid_y = valid_y.reshape([-1, 1])
+    # print(train_y.shape)
+    # # 定义一些占位符与变量
+    config = Config(train_x, train_y)
+    X = tf.placeholder(dtype=tf.float32, shape=[None, config.timesteps, config.features])
+    Y = tf.placeholder(dtype=tf.float32, shape=[None, config.outputdims])
+    epoch = config.training_epoch
+    lr = config.learning_rate
+    batch_size = config.batch_size
+    prediction_Y,_=GridLSTM_Model(X, config)
+
+    # tf.summary.histogram('predicton',prediction_Y)   #创建直方图的日志
+    #利用MSE来做度量标准
+    cost=tf.reduce_mean(tf.square(tf.subtract(prediction_Y,Y)))
+    # tf.summary.scalar('cost',tensor=cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate=lr).minimize(cost)
+    # 生成saver,保存模型
+    init = tf.global_variables_initializer()
+    saver = tf.train.Saver()   #定义一个简单的会话保存模型
+    sess = tf.Session()
+    # summary_writer = tf.summary.FileWriter("/log", sess.graph)
+    sess.run(init)
+    valid_losses = []
+    train_losses = []
+    train_result_total=[]
+    start=time.time()
+
+    for i in range(epoch):
+        train_total_loss = 0.0
+        valid_total_loss = 0.0
+
+        # print("============epoch:",str(i+1),"======================")
+        for start, end in zip(range(0, len(train_x), batch_size), range(batch_size, len(train_x) + 1, batch_size)):
+            sess.run(optimizer, feed_dict={X: train_x[start:end], Y: train_y[start:end]})
+            # saver.save(sess,save_path=saver_dir+"lstm_model.cpkt")
+            loss_train, train_result = sess.run([cost, prediction_Y], feed_dict={X: train_x, Y: train_y})
+            loss_valid, valid_result = sess.run([cost, prediction_Y], feed_dict={X: valid_x, Y: valid_y})
+            valid_total_loss += loss_valid
+            train_total_loss += loss_train
+            train_result_total.append(train_result)
+            np.savetxt('train_result_5.txt', train_result)
+            np.savetxt('valid_result_5.txt', valid_result)
+        valid_losses.append(valid_total_loss)
+        train_losses.append(train_total_loss)
+        print("epoch:{}======loss_train:{}===============loss_valid:{}".format(str(i + 1), train_total_loss,valid_total_loss))
+        # summary_str=sess.run(merge_summmary_op,feed_dict={X:train_x,Y:train_y})
+        # summary_writer.add_summary(summary_str,epoch)
+    save_path=saver.save(sess,"Model/GLSTM_Model.ckpt")  #将模型保存起来
+    print("模型保存在:{}".format(save_path))
+    np.savetxt("train_loss_1.txt",train_losses)
+    np.savetxt("valid_loss_1.txt",valid_losses)
+    end=time.time()
+    print("Training has been finished,it cost {} sec".format(str(round(end-start,2))))
+
+
+   #将加载好的模型拿来预测，并将结果用于SVM模型的结果
+    test_losses=[]
+    # saver.restore(sess,"Model/GLSTM_Model.ckpt")
+    test_total_loss=0.0
+    test_result_vec=[]
+    for i in range(len(test_dataset_X)//batch_size):
+        for start,end in zip(range(0,len(test_dataset_X),batch_size),range(batch_size,len(test_dataset_X)+1,batch_size)):
+            loss_test,test_result=sess.run([cost,prediction_Y],feed_dict={X:test_dataset_X[start:end],Y:test_dataset_Y[start:end]})
+            test_total_loss+=loss_test
+            test_result_vec.append(test_result)
+            print("loss_test:{:.5f}.".format(loss_test))
+        np.savetxt("test_result_6.txt",test_result_vec)
 
 if __name__=='__main__':
     main()
