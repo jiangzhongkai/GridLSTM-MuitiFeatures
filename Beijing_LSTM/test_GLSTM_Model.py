@@ -55,7 +55,7 @@ optimizer = tf.train.AdamOptimizer(learning_rate=lr).minimize(cost)
 sess=tf.Session()
 saver=tf.train.Saver()
 saver.restore(sess,"./Model/GLSTM_Model.ckpt")
-#测试集用于验证模型的性能的
+
 for i in range(100):
     for start, end in zip(range(0, len(test_dataset_X), batch_size), range(batch_size, len(test_dataset_X) + 1, batch_size)):
         loss_test,_,test_result = sess.run([cost,optimizer,prediction_Y], feed_dict={X: test_dataset_X, Y: test_dataset_Y})
