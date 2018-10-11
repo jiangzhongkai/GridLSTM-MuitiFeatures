@@ -59,9 +59,8 @@ saver.restore(sess,"./Model/GLSTM_Model.ckpt")
 for i in range(100):
     for start, end in zip(range(0, len(test_dataset_X), batch_size), range(batch_size, len(test_dataset_X) + 1, batch_size)):
         loss_test,_,test_result = sess.run([cost,optimizer,prediction_Y], feed_dict={X: test_dataset_X, Y: test_dataset_Y})
-        print("epoch{}====loss_test:{}".format(str(i),loss_test))
+        print("epoch{}====loss_test:{}".format(str(i),loss_test/len(batch_size)))   #计算平均的误差
         np.savetxt("test_result_7.txt",test_result)
-
 sess.close()
 
 
